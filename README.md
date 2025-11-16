@@ -15,7 +15,7 @@ local OrionLib = loadstring(game:HttpGet(
 ))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "PORNO HUB DEAD | jogaprovitinho // RLK_KZN8",
+    Name = "Dead Rails Hub | jogaprovitinho // RLK_KZN8",
     HidePremium = false,
     SaveConfig = false
 })
