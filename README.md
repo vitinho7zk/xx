@@ -1,210 +1,240 @@
 --========================================================--
---           DEAD RAILS HUB V5 – DARK UI + IA  
---    Feito para Sofia — jogaprovitinho // RLK_KZN8  
+--            DEV TOOL HUB • MOBILE DARK EDITION
+--             Feito especialmente para Vitinho M
+--        IA + Itens + Inimigos + HUD Gamer Mobile
 --========================================================--
 
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 --========================================================--
---                 IA – DETECTOR AUTOMÁTICO
+--                 IA DEV — INIMIGOS & ITENS
 --========================================================--
 
-AI = {
+local DEV = {
     Enemies = {},
     Items = {},
 }
 
-function IsEnemy(model)
+-- INIMIGOS DO TIPO 2:
+-- Model com PrimaryPart + Health: NumberValue
+local function IsEnemy(model)
     if not model:IsA("Model") then return false end
-    if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
-        local isPlayer = Players:GetPlayerFromCharacter(model)
-        if not isPlayer and model.Humanoid.MaxHealth > 40 then
-            return true
-        end
+    
+    if model.PrimaryPart ~= nil and model:FindFirstChild("Health") then
+        return true
     end
+
     return false
 end
 
-function IsItem(obj)
+-- Itens podem ser Tools ou Models
+local function IsItem(obj)
     if obj:IsA("Tool") then return true end
-    if obj:FindFirstChild("Handle") then return true end
-    local name = obj.Name:lower()
-    return name:match("gun") or name:match("ammo") or name:match("item")
+    if obj:IsA("Model") and obj.PrimaryPart then return true end
+    return false
 end
 
-function AI.Scan()
-    table.clear(AI.Enemies)
-    table.clear(AI.Items)
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        
-        if IsEnemy(obj) then
-            table.insert(AI.Enemies, obj)
-        
-        elseif IsItem(obj) then
-            table.insert(AI.Items, obj)
-        
-        end
-    end
-end
-
+-- Scanner IA
 task.spawn(function()
     while true do
-        AI.Scan()
+        table.clear(DEV.Enemies)
+        table.clear(DEV.Items)
+
+        for _, obj in ipairs(Workspace:GetChildren()) do
+            if IsEnemy(obj) then
+                table.insert(DEV.Enemies, obj)
+            elseif IsItem(obj) then
+                table.insert(DEV.Items, obj)
+            end
+        end
+        
         task.wait(0.5)
     end
 end)
 
 --========================================================--
---                       SISTEMAS
+--     FUNÇÕES DEV (puxar item, teleportar, dano, etc.)
 --========================================================--
 
-getgenv().Aimbot = false
-getgenv().SilentAim = false
-getgenv().AutoKill = false
-getgenv().ESP_Enemies = false
-getgenv().ESP_Items = false
-getgenv().AutoPickup = false
-
--- AIMBOT
-task.spawn(function()
-    RunService.RenderStepped:Connect(function()
-        if not getgenv().Aimbot then return end
-        
-        local closest, dist = nil, 9999
-        
-        for _, enemy in ipairs(AI.Enemies) do
-            local hrp = enemy:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local d = (hrp.Position - LocalPlayer.Character.Head.Position).Magnitude
-                if d < dist then
-                    dist = d
-                    closest = hrp
-                end
-            end
-        end
-        
-        if closest then
-            LocalPlayer.Character.HumanoidRootPart.CFrame =
-                CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, closest.Position)
-        end
-    end)
-end)
-
--- AUTO KILL
-task.spawn(function()
-    while true do
-        if getgenv().AutoKill then
-            for _, enemy in ipairs(AI.Enemies) do
-                if enemy:FindFirstChild("Humanoid") then
-                    enemy.Humanoid.Health = 0
-                end
-            end
-        end
-        task.wait(0.1)
+-- puxar item até o jogador
+local function PullItem(item)
+    if item.PrimaryPart then
+        item:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame)
     end
-end)
-
--- AUTO PICKUP
-task.spawn(function()
-    while true do
-        if getgenv().AutoPickup then
-            for _, item in ipairs(AI.Items) do
-                local h = item:FindFirstChild("Handle")
-                if h then
-                    h.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-                end
-            end
-        end
-        task.wait(0.1)
-    end
-end)
-
---========================================================--
---                       ESP
---========================================================--
-
-function CreateESP(obj, text, color)
-    if obj:FindFirstChild("DRH_ESP") then return end
-
-    local tag = Instance.new("BillboardGui", obj)
-    tag.Name = "DRH_ESP"
-    tag.Adornee = obj
-    tag.Size = UDim2.new(4, 0, 1, 0)
-    tag.AlwaysOnTop = true
-
-    local label = Instance.new("TextLabel", tag)
-    label.Size = UDim2.new(1,0,1,0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = color
-    label.TextScaled = true
 end
 
-task.spawn(function()
-    while true do
-        if getgenv().ESP_Enemies then
-            for _, enemy in ipairs(AI.Enemies) do
-                if enemy:FindFirstChild("Head") then
-                    CreateESP(enemy.Head, "Enemy", Color3.new(1,0,0))
-                end
+-- ir até item
+local function TeleportToItem(item)
+    if item.PrimaryPart then
+        LocalPlayer.Character:MoveTo(item.PrimaryPart.Position)
+    end
+end
+
+--DEV: matar inimigo modelo (tipo 2)
+local function KillEnemy(enemy)
+    if enemy:FindFirstChild("Health") then
+        enemy.Health.Value = 0
+    end
+end
+
+--Aimbot DEV mirando no PrimaryPart
+local AimbotEnabled = false
+RunService.RenderStepped:Connect(function()
+    if not AimbotEnabled then return end
+
+    local closest, dist = nil, 9999
+
+    for _, enemy in ipairs(DEV.Enemies) do
+        if enemy.PrimaryPart then
+            local d = (enemy.PrimaryPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = enemy
             end
         end
-        
-        if getgenv().ESP_Items then
-            for _, item in ipairs(AI.Items) do
-                local h = item:FindFirstChild("Handle") or item
-                CreateESP(h, item.Name, Color3.new(0,1,0))
-            end
-        end
-        
-        task.wait(0.4)
+    end
+
+    if closest then
+        LocalPlayer.Character.HumanoidRootPart.CFrame =
+            CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, closest.PrimaryPart.Position)
     end
 end)
 
 --========================================================--
---                     UI DARK MINIMAL
+--                   HUD GAMER MOBILE DARK
 --========================================================--
 
-local Screen = Instance.new("ScreenGui", game.CoreGui)
-local Frame = Instance.new("Frame", Screen)
-Frame.Size = UDim2.new(0, 260, 0, 350)
-Frame.Position = UDim2.new(0.1, 0, 0.2, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Frame.BorderSizePixel = 0
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "Vitinho_DEV_HUB"
 
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1,0,0,40)
-Title.BackgroundTransparency = 1
-Title.Text = "Dead Rails Hub V5"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.TextScaled = true
+-- Botão principal circular
+local MainButton = Instance.new("ImageButton", ScreenGui)
+MainButton.Size = UDim2.new(0, 70, 0, 70)
+MainButton.Position = UDim2.new(0.04, 0, 0.45, 0)
+MainButton.Image = "rbxassetid://3926305904"
+MainButton.ImageRectOffset = Vector2.new(4, 4)
+MainButton.ImageRectSize = Vector2.new(36, 36)
+MainButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainButton.BorderSizePixel = 0
 
-function AddToggle(name, callback)
-    local btn = Instance.new("TextButton", Frame)
-    btn.Size = UDim2.new(1,-20,0,35)
-    btn.Position = UDim2.new(0,10,0, 45 + (#Frame:GetChildren()-1)*40)
-    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextScaled = true
-    btn.Text = name .. ": OFF"
+local Corner = Instance.new("UICorner", MainButton)
+Corner.CornerRadius = UDim.new(1, 0)
 
-    local state = false
+-- Painel lateral
+local Panel = Instance.new("Frame", ScreenGui)
+Panel.Size = UDim2.new(0, 260, 1, 0)
+Panel.Position = UDim2.new(-0.5, 0, 0, 0)
+Panel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = name .. ": " .. (state and "ON" or "OFF")
-        callback(state)
-    end)
+local CornerPanel = Instance.new("UICorner", Panel)
+CornerPanel.CornerRadius = UDim.new(0, 12)
+
+local Stroke = Instance.new("UIStroke", Panel)
+Stroke.Color = Color3.fromRGB(40, 40, 40)
+Stroke.Thickness = 1
+
+local Open = false
+MainButton.MouseButton1Click:Connect(function()
+    Open = not Open
+    Panel:TweenPosition(
+        UDim2.new(Open and 0 or -0.5, 0, 0, 0),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.25
+    )
+end)
+
+-- Lista rolável
+local Scroll = Instance.new("ScrollingFrame", Panel)
+Scroll.Size = UDim2.new(1, 0, 1, -20)
+Scroll.Position = UDim2.new(0, 0, 0, 20)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 800)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 6
+
+local List = Instance.new("UIListLayout", Scroll)
+List.Padding = UDim.new(0, 12)
+List.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Criador de botões
+local function CreateButton(text, callback)
+    local Btn = Instance.new("TextButton", Scroll)
+    Btn.Size = UDim2.new(1, -20, 0, 50)
+    Btn.Position = UDim2.new(0, 10, 0, 0)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
+    Btn.TextScaled = true
+    Btn.Text = text
+    Btn.BorderSizePixel = 0
+
+    local C = Instance.new("UICorner", Btn)
+    C.CornerRadius = UDim.new(0, 10)
+
+    Btn.MouseButton1Click:Connect(callback)
 end
 
--- Toggles
-AddToggle("Aimbot", function(v) getgenv().Aimbot = v end)
-AddToggle("Auto Kill", function(v) getgenv().AutoKill = v end)
-AddToggle("ESP Inimigos", function(v) getgenv().ESP_Enemies = v end)
-AddToggle("ESP Itens", function(v) getgenv().ESP_Items = v end)
-AddToggle("Auto Pickup", function(v) getgenv().AutoPickup = v end)
+--========================================================--
+--                 BOTÕES + FUNÇÕES DEV
+--========================================================--
 
+CreateButton("Aimbot DEV", function()
+    AimbotEnabled = not AimbotEnabled
+    print("Aimbot DEV:", AimbotEnabled)
+end)
+
+CreateButton("Auto Kill Inimigos", function()
+    for _, enemy in ipairs(DEV.Enemies) do
+        KillEnemy(enemy)
+    end
+end)
+
+CreateButton("Puxar TODOS Itens", function()
+    for _, item in ipairs(DEV.Items) do
+        PullItem(item)
+    end
+end)
+
+CreateButton("Teleport até ITEM MAIS PRÓXIMO", function()
+    local closest, dist = nil, 9999
+    for _, item in ipairs(DEV.Items) do
+        if item.PrimaryPart then
+            local d = (item.PrimaryPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = item
+            end
+        end
+    end
+    if closest then
+        TeleportToItem(closest)
+    end
+end)
+
+CreateButton("Listar Itens no Console", function()
+    print("===== ITENS DETECTADOS =====")
+    for _, item in ipairs(DEV.Items) do
+        print(item.Name)
+    end
+end)
+
+CreateButton("Listar Inimigos no Console", function()
+    print("===== INIMIGOS DETECTADOS =====")
+    for _, enemy in ipairs(DEV.Enemies) do
+        print(enemy.Name, "HP:", enemy.Health.Value)
+    end
+end)
+
+-- Créditos
+local Credits = Instance.new("TextLabel", Panel)
+Credits.Text = "DEV HUB • Vitinho M"
+Credits.TextColor3 = Color3.fromRGB(120,120,120)
+Credits.TextScaled = true
+Credits.BackgroundTransparency = 1
+Credits.Size = UDim2.new(1, 0, 0, 40)
+Credits.Position = UDim2.new(0, 0, 1, -40)
+
+print("DEV HUB carregado com sucesso para Vitinho M!")
