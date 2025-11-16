@@ -1,152 +1,147 @@
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/main/source"))()
+local player = game.Players.LocalPlayer.Name
 
-local Window = Rayfield:CreateWindow({
-    Name = "Unity Nexus | Dead Rails",
-    LoadingTitle = "Unity Nexus | Loading...",
-    LoadingSubtitle = "Please wait...",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil,
-        FileName = "UnityNexus_Config"
-    }
+local Window = OrionLib:MakeWindow({
+    Name = "KAdaHUB (Editado por jogaprovitinho // RLK_KZN8)",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "what"
 })
 
-local PlayerTab = Window:CreateTab("Player")  
-local PlayerSection = PlayerTab:CreateSection("Player Tab")  
-
-PlayerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 300},
-    Increment = 1,
-    Suffix = "Speed",
-    CurrentValue = 16,
-    Callback = function(value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-    end
+---------------------------------------------------------------------
+--  ABA PRINCIPAL
+---------------------------------------------------------------------
+local Tab = Window:MakeTab({
+	Name = "Main",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
 })
 
-PlayerTab:CreateSlider({
-    Name = "JumpPower",
-    Range = {50, 500},
-    Increment = 1,
-    Suffix = "Power",
-    CurrentValue = 50,
-    Callback = function(value)
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = value
-    end
-})
+---------------------------------------------------------------------
+--  ESP BUTTON
+---------------------------------------------------------------------
+Tab:AddButton({
+	Name = "esp",
+	Callback = function()
+        -- Esp script for Dead Rails enemies  
+        local RunService = game:GetService("RunService")  
+        local UserInputService = game:GetService("UserInputService")  
+        local Workspace = game:GetService("Workspace")
 
-PlayerTab:CreateButton({
-    Name = "Infinite Yield Admin",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-    end
-})
+        while true do  
+            local rayParams = RaycastParams.new()  
+            rayParams.FilterType = Enum.RaycastFilterType.IgnoreWater
+            local char = game.Players.LocalPlayer.Character
+            if not char then break end
 
-PlayerTab:CreateButton({
-    Name = "CMD-X Admin",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source"))()
-    end
-})
+            local rayResult = Workspace:Raycast(
+                char.HumanoidRootPart.Position,
+                char.HumanoidRootPart.CFrame.LookVector * 100,
+                rayParams
+            )
 
-PlayerTab:CreateButton({
-    Name = "Nameless Admin V2",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/NamelessAdmin/main/Source"))()
-    end
-})
-
-local MainTab = Window:CreateTab("Main")  
-local MainSection = MainTab:CreateSection("Item Tweening")  
-
-local TweenSpeed = 50  
-
-MainTab:CreateSlider({
-    Name = "Tween Speed",
-    Range = {10, 200},
-    Increment = 5,
-    Suffix = "Speed",
-    CurrentValue = 50,
-    Callback = function(value)
-        TweenSpeed = value
-    end
-})
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-
-local InteractiveItems = {
-    "Revolver", "Sawed-off Shotgun", "Shotgun", "Rifle", "Bolt-Action Rifle", "Mauser",
-    "Navy Revolver", "Crucifix", "Holy Water", "Molotov", "Shotgun Shells", "Rifle Ammo",
-    "Revolver Ammo", "Turret Ammo", "Cannon Ammo", "Dynamite", "Helmet", "Left Shoulder Armor",
-    "Right Shoulder Armor", "Chestplate", "Banjo", "Barbed Wire", "Bond", "Camera", "Coal",
-    "Gold Bar", "Gold Cup", "Gold Painting", "Gold Plate", "Gold Statue", "Gold Watch", "Lantern",
-    "Money Bag", "Saddle", "Sheet Metal", "Silver Bar", "Silver Cup", "Silver Painting",
-    "Silver Plate", "Silver Statue", "Stone Statue", "Silver Watch", "Wooden Painting",
-    "Barrel", "Book", "Chair", "Newspaper", "Rope", "Teapot", "Vase", "Wheel", "Bandage",
-    "Snake Oil"
-}
-
-local ItemDropdown = MainTab:CreateDropdown({
-    Name = "Select Item",
-    Options = {},
-    CurrentOption = nil,
-    Callback = function(selectedItem)
-        SelectedItem = selectedItem
-    end
-})
-
-local function RefreshItemList()
-    local FoundItems = {}
-    for _, item in ipairs(workspace:GetChildren()) do
-        if table.find(InteractiveItems, item.Name) and (item.Position - HumanoidRootPart.Position).Magnitude <= 500 then
-            table.insert(FoundItems, item.Name)
-        end
-    end
-    ItemDropdown:Refresh(FoundItems, true)
-end
-
-MainTab:CreateButton({
-    Name = "Refresh Items",
-    Callback = function()
-        RefreshItemList()
-    end
-})
-
-local function TweenToPosition(targetPosition)
-    if not HumanoidRootPart then return end
-    local TweenInfo = TweenInfo.new((HumanoidRootPart.Position - targetPosition).Magnitude / TweenSpeed, Enum.EasingStyle.Linear)
-    local TweenGoal = {Position = targetPosition}
-    local Tween = TweenService:Create(HumanoidRootPart, TweenInfo, TweenGoal)
-    Tween:Play()
-end
-
-MainTab:CreateButton({
-    Name = "Tween to Item",
-    Callback = function()
-        for _, item in ipairs(workspace:GetChildren()) do
-            if item.Name == SelectedItem then
-                TweenToPosition(item.Position)
-                break
+            if rayResult and rayResult.Instance:IsA("Model") and rayResult.Instance:FindFirstChild("Humanoid") then  
+                drawing:Text(rayResult.Instance.Name, Vector2.new(50,50), Color3.new(1,1,1), true)
             end
-        end
+            task.wait(0.1)
+        end  
     end
 })
 
-MainTab:CreateButton({
-    Name = "Tween to All Items",
-    Callback = function()
-        for _, item in ipairs(workspace:GetChildren()) do
-            if table.find(InteractiveItems, item.Name) then
-                TweenToPosition(item.Position)
-                task.wait(2)  
+---------------------------------------------------------------------
+--  KILLAURA BUTTON
+---------------------------------------------------------------------
+Tab:AddButton({
+	Name = "swing killaura",
+	Callback = function()
+        local UserInputService = game:GetService("UserInputService")  
+        local Workspace = game:GetService("Workspace")
+        local swinging = false
+        
+        UserInputService.InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.E then
+                swinging = true
             end
+        end)
+
+        while true do
+            if swinging then
+                swinging = false
+
+                local char = game.Players.LocalPlayer.Character
+                if not char then continue end
+
+                local rayResult = Workspace:Raycast(
+                    char.HumanoidRootPart.Position,
+                    char.HumanoidRootPart.CFrame.LookVector * 100
+                )
+
+                if rayResult and rayResult.Instance:FindFirstChild("Humanoid") then
+                    rayResult.Instance.Humanoid.Health = 0
+                end
+            end
+            task.wait(0.1)
         end
     end
 })
 
-RefreshItemList()
+---------------------------------------------------------------------
+--  TELEPORT
+---------------------------------------------------------------------
+local TpTab = Window:MakeTab({
+	Name = "tp",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+TpTab:AddButton({
+	Name = "tesla",
+	Callback = function()
+        game.Players.LocalPlayer.Character:MoveTo(Vector3.new(-124745.677, 40875.192, 63567.292))
+	end    
+})
+
+---------------------------------------------------------------------
+--  SETTINGS
+---------------------------------------------------------------------
+local Settings = Window:MakeTab({
+	Name = "settings",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+Settings:AddColorpicker({
+	Name = "UI Color",
+	Default = Color3.fromRGB(0, 140, 255),
+	Callback = function(Value)
+		print("Color:", Value)
+	end
+})
+
+---------------------------------------------------------------------
+--  CRÉDITOS + DISCORD
+---------------------------------------------------------------------
+local Credits = Window:MakeTab({
+	Name = "credit",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+Credits:AddLabel("Script editado por: jogaprovitinho // RLK_KZN8")
+Credits:AddLabel("Discord Oficial:")
+
+Credits:AddButton({
+	Name = "Entrar no Discord",
+	Callback = function()
+        setclipboard("https://discord.gg/BK58V5vRNv")
+        OrionLib:MakeNotification({
+            Name = "Discord copiado!",
+            Content = "Link copiado! Cole no navegador.",
+            Image = "rbxassetid://4483345998",
+            Time = 4
+        })
+	end
+})
+
+---------------------------------------------------------------------
+OrionLib:Init()
