@@ -1,40 +1,27 @@
 --========================================================--
---   DEAD RAILS HUB V3 (AI SYSTEM)  
---   Feito para Sofia — jogaprovitinho // RLK_KZN8  
---   OrionLib • IA • Auto-Scan • Ultra Otimizado  
+--           DEAD RAILS HUB V5 – DARK UI + IA  
+--    Feito para Sofia — jogaprovitinho // RLK_KZN8  
 --========================================================--
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local RS = game:GetService("ReplicatedStorage")
-
-local OrionLib = loadstring(game:HttpGet(
-"https://raw.githubusercontent.com/jensonhirst/Orion/main/source"
-))()
-
-local Window = OrionLib:MakeWindow({
-    Name = "Dead Rails Hub | jogaprovitinho // RLK_KZN8",
-    HidePremium = false,
-    SaveConfig = false
-})
 
 --========================================================--
---                  IA – DETECTAR TUDO
+--                 IA – DETECTOR AUTOMÁTICO
 --========================================================--
 
 AI = {
     Enemies = {},
     Items = {},
-    Weapons = {}
 }
 
 function IsEnemy(model)
     if not model:IsA("Model") then return false end
     if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
         local isPlayer = Players:GetPlayerFromCharacter(model)
-        if not isPlayer and model.Humanoid.MaxHealth > 30 then
+        if not isPlayer and model.Humanoid.MaxHealth > 40 then
             return true
         end
     end
@@ -45,143 +32,114 @@ function IsItem(obj)
     if obj:IsA("Tool") then return true end
     if obj:FindFirstChild("Handle") then return true end
     local name = obj.Name:lower()
-    if name:match("gun") or name:match("ammo") or name:match("item") then
-        return true
-    end
-    return false
-end
-
-function IsWeapon(obj)
-    return obj:IsA("Tool") and (obj.Name:lower():match("gun") or obj:FindFirstChild("GunScript"))
+    return name:match("gun") or name:match("ammo") or name:match("item")
 end
 
 function AI.Scan()
     table.clear(AI.Enemies)
     table.clear(AI.Items)
-    table.clear(AI.Weapons)
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
+        
         if IsEnemy(obj) then
             table.insert(AI.Enemies, obj)
+        
         elseif IsItem(obj) then
             table.insert(AI.Items, obj)
+        
         end
-    end
-
-    for _, obj in ipairs(game:GetDescendants()) do
-        if IsWeapon(obj) then table.insert(AI.Weapons, obj) end
     end
 end
 
 task.spawn(function()
     while true do
         AI.Scan()
-        task.wait(0.75)
+        task.wait(0.5)
     end
 end)
 
 --========================================================--
---                FUNÇÕES PRINCIPAIS
+--                       SISTEMAS
 --========================================================--
 
 getgenv().Aimbot = false
 getgenv().SilentAim = false
-getgenv().Wallbang = false
-getgenv().NoRecoil = false
-getgenv().NoSpread = false
-getgenv().Hitbox = false
 getgenv().AutoKill = false
-getgenv().ESP_Items = false
 getgenv().ESP_Enemies = false
+getgenv().ESP_Items = false
 getgenv().AutoPickup = false
 
---🔫 Aimbot inteligente (somente inimigos IA)
+-- AIMBOT
 task.spawn(function()
     RunService.RenderStepped:Connect(function()
         if not getgenv().Aimbot then return end
-        local target, dist = nil, 9999
-
+        
+        local closest, dist = nil, 9999
+        
         for _, enemy in ipairs(AI.Enemies) do
-            if enemy:FindFirstChild("HumanoidRootPart") then
-                local d = (enemy.HumanoidRootPart.Position - LocalPlayer.Character.Head.Position).Magnitude
+            local hrp = enemy:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - LocalPlayer.Character.Head.Position).Magnitude
                 if d < dist then
                     dist = d
-                    target = enemy.HumanoidRootPart
+                    closest = hrp
                 end
             end
         end
-
-        if target then
+        
+        if closest then
             LocalPlayer.Character.HumanoidRootPart.CFrame =
-                CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, target.Position)
+                CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, closest.Position)
         end
     end)
 end)
 
---💀 Auto Kill
+-- AUTO KILL
 task.spawn(function()
-    RunService.Heartbeat:Connect(function()
-        if not getgenv().AutoKill then return end
-        for _, enemy in ipairs(AI.Enemies) do
-            if enemy:FindFirstChild("Humanoid") then
-                enemy.Humanoid.Health = 0
+    while true do
+        if getgenv().AutoKill then
+            for _, enemy in ipairs(AI.Enemies) do
+                if enemy:FindFirstChild("Humanoid") then
+                    enemy.Humanoid.Health = 0
+                end
             end
         end
-    end)
-end)
-
---🎯 Silent Aim (auto-hit em inimigos IA)
--- (implementação segura)
-local oldRaycast = Workspace.Raycast
-Workspace.Raycast = function(...)
-    local result = oldRaycast(...)
-    if getgenv().SilentAim and #AI.Enemies > 0 then
-        local enemy = AI.Enemies[1]
-        if enemy:FindFirstChild("Head") then
-            return {
-                Instance = enemy.Head,
-                Position = enemy.Head.Position,
-                Normal = Vector3.new(0,0,0),
-                Material = Enum.Material.Flesh
-            }
-        end
+        task.wait(0.1)
     end
-    return result
-end
+end)
 
---🎯 Wallbang
-getgenv().Wallbang = true
-
---📦 Auto Pickup inteligente
+-- AUTO PICKUP
 task.spawn(function()
-    RunService.Heartbeat:Connect(function()
-        if not getgenv().AutoPickup then return end
-        for _, item in ipairs(AI.Items) do
-            local h = item:FindFirstChild("Handle")
-            if h then
-                h.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+    while true do
+        if getgenv().AutoPickup then
+            for _, item in ipairs(AI.Items) do
+                local h = item:FindFirstChild("Handle")
+                if h then
+                    h.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+                end
             end
         end
-    end)
+        task.wait(0.1)
+    end
 end)
 
 --========================================================--
---                       ESP SISTEMA
+--                       ESP
 --========================================================--
 
-function CreateESP(obj, txt, color)
-    if obj:FindFirstChild("ESP_TAG") then return end
+function CreateESP(obj, text, color)
+    if obj:FindFirstChild("DRH_ESP") then return end
 
-    local gui = Instance.new("BillboardGui", obj)
-    gui.Name = "ESP_TAG"
-    gui.Adornee = obj
-    gui.Size = UDim2.new(4,0,1,0)
-    gui.AlwaysOnTop = true
+    local tag = Instance.new("BillboardGui", obj)
+    tag.Name = "DRH_ESP"
+    tag.Adornee = obj
+    tag.Size = UDim2.new(4, 0, 1, 0)
+    tag.AlwaysOnTop = true
 
-    local label = Instance.new("TextLabel", gui)
+    local label = Instance.new("TextLabel", tag)
     label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
-    label.Text = txt
+    label.Text = text
     label.TextColor3 = color
     label.TextScaled = true
 end
@@ -191,69 +149,62 @@ task.spawn(function()
         if getgenv().ESP_Enemies then
             for _, enemy in ipairs(AI.Enemies) do
                 if enemy:FindFirstChild("Head") then
-                    CreateESP(enemy.Head, "ENEMY", Color3.new(1,0,0))
+                    CreateESP(enemy.Head, "Enemy", Color3.new(1,0,0))
                 end
             end
         end
-
+        
         if getgenv().ESP_Items then
             for _, item in ipairs(AI.Items) do
                 local h = item:FindFirstChild("Handle") or item
                 CreateESP(h, item.Name, Color3.new(0,1,0))
             end
         end
-
-        task.wait(0.5)
+        
+        task.wait(0.4)
     end
 end)
 
 --========================================================--
---                  INTERFACE ORIONLIB
+--                     UI DARK MINIMAL
 --========================================================--
 
-local Combat = Window:MakeTab({Name = "Combat"})
-local ESP = Window:MakeTab({Name = "ESP"})
-local Loot = Window:MakeTab({Name = "Loot"})
-local Misc = Window:MakeTab({Name = "Extras"})
-local Credits = Window:MakeTab({Name = "Créditos"})
+local Screen = Instance.new("ScreenGui", game.CoreGui)
+local Frame = Instance.new("Frame", Screen)
+Frame.Size = UDim2.new(0, 260, 0, 350)
+Frame.Position = UDim2.new(0.1, 0, 0.2, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Frame.BorderSizePixel = 0
 
--- Combat
-Combat:AddToggle({
-    Name = "Aimbot",
-    Callback = function(v) getgenv().Aimbot = v end
-})
-Combat:AddToggle({
-    Name = "Silent Aim",
-    Callback = function(v) getgenv().SilentAim = v end
-})
-Combat:AddToggle({
-    Name = "Auto Kill",
-    Callback = function(v) getgenv().AutoKill = v end
-})
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,40)
+Title.BackgroundTransparency = 1
+Title.Text = "Dead Rails Hub V5"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextScaled = true
 
--- ESP
-ESP:AddToggle({
-    Name = "ESP Inimigos",
-    Callback = function(v) getgenv().ESP_Enemies = v end
-})
-ESP:AddToggle({
-    Name = "ESP Itens",
-    Callback = function(v) getgenv().ESP_Items = v end
-})
+function AddToggle(name, callback)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = UDim2.new(1,-20,0,35)
+    btn.Position = UDim2.new(0,10,0, 45 + (#Frame:GetChildren()-1)*40)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextScaled = true
+    btn.Text = name .. ": OFF"
 
--- Loot
-Loot:AddToggle({
-    Name = "Auto Pickup (IA)",
-    Callback = function(v) getgenv().AutoPickup = v end
-})
+    local state = false
 
--- Créditos
-Credits:AddLabel("Feito por jogaprovitinho // RLK_KZN8")
-Credits:AddButton({
-    Name = "Discord",
-    Callback = function()
-        setclipboard("https://discord.gg/BK58V5vRNv")
-    end
-})
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = name .. ": " .. (state and "ON" or "OFF")
+        callback(state)
+    end)
+end
 
-OrionLib:Init()
+-- Toggles
+AddToggle("Aimbot", function(v) getgenv().Aimbot = v end)
+AddToggle("Auto Kill", function(v) getgenv().AutoKill = v end)
+AddToggle("ESP Inimigos", function(v) getgenv().ESP_Enemies = v end)
+AddToggle("ESP Itens", function(v) getgenv().ESP_Items = v end)
+AddToggle("Auto Pickup", function(v) getgenv().AutoPickup = v end)
+
